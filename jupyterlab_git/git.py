@@ -273,6 +273,29 @@ class Git:
 
         if code != 0:
             response["message"] = error.strip()
+        
+        if response["code"] == 0:
+            import stat
+            import textwrap
+            import traceback
+            
+            lines = textwrap.dedent(
+                """
+                #!/bin/bash 
+                set -ex
+                jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace *.ipynb
+                git add .
+                """)
+            #Repo url is encoded so the / is %2F
+            repo_name = repo_url.split("%2F")[-1].split(".")[0]
+            try:
+                destination =  os.path.join(current_path, repo_name,".git", "hooks", "pre-commit")
+                with open(destination, "w") as f:
+                    f.write(lines)
+                st = os.stat(destination)
+                os.chmod(destination, st.st_mode | stat.S_IEXEC)
+            except Exception:
+                get_logger().warning(f"ERROR: {traceback.format_exc()}")
 
         return response
 
